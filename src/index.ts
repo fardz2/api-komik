@@ -10,7 +10,7 @@ app.get('/', (c) => {
   return c.text('Hello Hono!')
 })
 
-app.route('/komik', komik);
+app.basePath('/api').route('/komik', komik);
 
 serve({
   fetch: app.fetch,
