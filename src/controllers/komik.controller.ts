@@ -15,13 +15,13 @@ export const getDaftarKomik = async (c: Context) => {
   try {
     const filters = {
       page: Number(c.req.query('page')) || 1,
-      genre: c.req.queries()['genre[]'], // bisa array
-      status: c.req.query('status'),
-      type: c.req.query('type'),
-      orderby: c.req.query('orderby')
-    }
+      genre: c.req.queries()['genre[]'] || [],
+      status: c.req.query('status') || '',
+      type: c.req.query('type') || '',
+      orderby: c.req.query('orderby') || ''
+    };
 
-    const data = await scrapeDaftarKomik(filters.page)
+    const data = await scrapeDaftarKomik(filters)
     return c.json({
       message: true,
       data

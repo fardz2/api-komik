@@ -26,25 +26,3 @@ export interface FilterOptions {
   type?: string    // 'manga', 'manhwa', 'manhua'
   orderby?: string // 'titleasc', 'titledesc', dll.
 }
-export interface ChapterItem {
-  title: string
-  url: string
-  updatedAt: string
-}
-
-export interface KomikDetail {
-  title: string
-  nativeTitle: string
-  slug: string
-  image: string
-  genres: string[]
-  released: string
-  author: string
-  status: string
-  type: string
-  totalChapter: string
-  updatedOn: string
-  rating: string
-  sinopsis: string
-  chapters: ChapterItem[]
-}
