@@ -20,13 +20,15 @@ export const getDaftarKomik = async (c: Context) => {
       type: c.req.query('type') || '',
       orderby: c.req.query('orderby') || ''
     };
-
+    
     const data = await scrapeDaftarKomik(filters)
+    
     return c.json({
       message: true,
       data
     })
   } catch (err: any) {
+    console.error(err.message)
     return c.json(errorResponse(err.message), 500)
   }
 }

@@ -1,7 +1,7 @@
 
 import type { DaftarKomikResult, FilterOptions, KomikItem } from '../types/komik.types.js'
 import { extractSlug } from '../utils/extractslug.js'
-import { fetchHtml } from '../utils/fetchHtml.js'
+import { decodeHtml, fetchHtml } from '../utils/fetchHtml.js'
 import { load } from 'cheerio'
 
 export const scrapeHotKomik = async (): Promise<KomikItem[]> => {
@@ -14,7 +14,7 @@ export const scrapeHotKomik = async (): Promise<KomikItem[]> => {
     const fullUrl = anchor.attr('href') || ''
 
     results.push({
-      title: anchor.attr('title')?.trim() || '',
+      title: decodeHtml($(el).find('.title').text().trim()),
       slug: extractSlug(fullUrl),
       image: $(el).find('img').attr('src') || '',
       type: $(el).find('.type').text().trim(),
@@ -35,7 +35,7 @@ export const scrapeKomikTerbaru = async (): Promise<KomikItem[]> => {
     const fullUrl = anchor.attr('href') || ''
 
     results.push({
-      title: anchor.attr('title')?.trim() || '',
+      title: decodeHtml($(el).find('.title').text().trim()),
       slug: extractSlug(fullUrl),
       image: $(el).find('img').attr('src') || '',
       type: $(el).find('.type').text().trim(),
@@ -49,22 +49,22 @@ export const scrapeKomikTerbaru = async (): Promise<KomikItem[]> => {
 
 export const scrapeDaftarKomik = async (filters: {
   page: number;
-  genre: string[]; // bisa array
+  genre: string[];
   status: string;
   type: string;
   orderby: string;
 }): Promise<DaftarKomikResult> => {
   const query = new URLSearchParams();
 
-  // Tambahkan genre[]
-  filters.genre.forEach(g => query.append('genre[]', g));
+  // Format genre[0], genre[1], ...
+  filters.genre.forEach((g, i) => query.append(`genre[${i}]`, g));
 
   if (filters.status) query.append('status', filters.status);
   if (filters.type) query.append('type', filters.type);
   if (filters.orderby) query.append('orderby', filters.orderby);
 
-  // page di Komikcast tetap pakai /page/{n}
-  const url = `${process.env.KOMIKCAST_URL}/daftar-komik/page/${filters.page}?${query.toString()}`;
+  const baseUrl = process.env.KOMIKCAST_URL?.replace(/\/+$/, '') || '';
+  const url = `${baseUrl}/daftar-komik/page/${filters.page}/?${query.toString()}`;
 
   const html = await fetchHtml(url);
   const $ = load(html);
@@ -77,7 +77,7 @@ export const scrapeDaftarKomik = async (filters: {
     const fullUrl = anchor.attr('href') || '';
 
     results.push({
-      title: anchor.attr('title')?.trim() || '',
+      title: decodeHtml($(el).find('.title').text().trim()),
       slug: extractSlug(fullUrl),
       image: img.attr('src') || '',
       type: $(el).find('.type').text().trim(),
@@ -86,10 +86,25 @@ export const scrapeDaftarKomik = async (filters: {
     });
   });
 
-  // Pagination
-  const currentPage = parseInt($('.pagination .current').text()) || filters.page;
-  let totalPages = currentPage;
+  // Pagination handling yang aman
+  let currentPage = filters.page;
 
+  // 1️⃣ Ambil dari .pagination .current
+  const currentText = $('.pagination .current').text().trim();
+  if (currentText) {
+    currentPage = parseInt(currentText) || filters.page;
+  }
+
+  // 2️⃣ Fallback: [aria-current="page"]
+  if (!currentText) {
+    const ariaCurrent = $('.pagination .page-numbers[aria-current="page"]').text().trim();
+    if (ariaCurrent) {
+      currentPage = parseInt(ariaCurrent) || filters.page;
+    }
+  }
+
+  // Hitung total pages
+  let totalPages = currentPage;
   $('.pagination .page-numbers').each((_, el) => {
     const num = parseInt($(el).text().trim());
     if (!isNaN(num) && num > totalPages) {

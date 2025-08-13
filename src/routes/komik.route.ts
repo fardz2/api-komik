@@ -7,9 +7,10 @@ import { getKomikBySlug, getKomikChapterBySlug } from '../controllers/detail-kom
 const komik = new Hono()
 
 komik.get('/', getHotKomik)
+komik.get('/daftar-komik', getDaftarKomik)
 komik.get('/:slug', getKomikBySlug)
 komik.get('/:slug/:chapter', getKomikChapterBySlug)
-komik.get('/daftar-komik', getDaftarKomik)
+
 
 
 export default komik

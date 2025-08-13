@@ -9,3 +9,7 @@ export const fetchHtml = async (url: string): Promise<string> => {
 
   return await res.text()
 }
+// Decode HTML entities seperti &#8220; menjadi tanda kutip
+export function decodeHtml(html: string): string {
+  return html.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(code));
+}
