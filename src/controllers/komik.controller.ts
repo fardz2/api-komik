@@ -1,5 +1,5 @@
 import type { Context } from 'hono'
-import { scrapeDaftarKomik, scrapeHotKomik } from '../services/komik.service.js'
+import { scrapeDaftarKomik, scrapeHotKomik, scrapeKomikSearch } from '../services/komik.service.js'
 import { successResponse, errorResponse } from '../utils/response.js'
 
 export const getHotKomik = async (c: Context) => {
@@ -32,4 +32,17 @@ export const getDaftarKomik = async (c: Context) => {
     return c.json(errorResponse(err.message), 500)
   }
 }
+export const getKomikSearch = async (c: Context) => {
+  try {
+        const filters = {
+      page: Number(c.req.query('page')) || 1,
+      q: c.req.query('q') || ''
+    };
+    const data = await scrapeKomikSearch(filters);
+    return c.json(successResponse(data));
+  } catch (err: any) {
+    return c.json(errorResponse(err.message), 500);
+  }
+}
+
 

@@ -123,6 +123,68 @@ export const scrapeDaftarKomik = async (filters: {
   };
 };
 
+export const scrapeKomikSearch = async (filters:{
+  q: string;
+  page: number;
+}): Promise<DaftarKomikResult> => {
+  const baseUrl = process.env.KOMIKCAST_URL?.replace(/\/+$/, '') || '';
+  const url = `${baseUrl}/page/${filters.page}/?s=${encodeURIComponent(filters.q)}&post_type=wp-manga`;
+
+  const html = await fetchHtml(url);
+  const $ = load(html);
+
+  const results: KomikItem[] = [];
+
+  $('.list-update_item').each((_, el) => {
+    const anchor = $(el).find('a');
+    const img = $(el).find('img');
+    const fullUrl = anchor.attr('href') || '';
+
+    results.push({
+      title: decodeHtml($(el).find('.title').text().trim()),
+      slug: extractSlug(fullUrl),
+      image: img.attr('src') || '',
+      type: $(el).find('.type').text().trim(),
+      chapter: $(el).find('.chapter').text().trim(),
+      rating: $(el).find('.numscore').text().trim()
+    });
+  });
+
+  // Pagination handling
+  let currentPage = filters.page;
+
+  const currentText = $('.pagination .current').text().trim();
+  if (currentText) {
+    currentPage = parseInt(currentText) || filters.page;
+  }
+
+  if (!currentText) {
+    const ariaCurrent = $('.pagination .page-numbers[aria-current="page"]').text().trim();
+    if (ariaCurrent) {
+      currentPage = parseInt(ariaCurrent) || filters.page;
+    }
+  }
+
+  let totalPages = currentPage;
+  $('.pagination .page-numbers').each((_, el) => {
+    const num = parseInt($(el).text().trim());
+    if (!isNaN(num) && num > totalPages) {
+      totalPages = num;
+    }
+  });
+
+  return {
+    comics: results,
+    pagination: {
+      currentPage,
+      totalPages,
+      hasNext: $('.pagination .next').length > 0,
+      hasPrev: $('.pagination .prev').length > 0
+    }
+  };
+};
+
+
 
 
 
