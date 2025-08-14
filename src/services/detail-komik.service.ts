@@ -88,8 +88,10 @@ export const scrapeKomikChapterBySlug = async (slug: string, chapter: string) : 
   })
 
   // Ambil link previous dan next chapter
-  const prevChapter = $('a[rel="prev"]').attr('href') || null
-  const nextChapter = $('a[rel="next"]').attr('href') || null
+  const prevChapterHref = $('a[rel="prev"]').attr('href') || '';
+  const nextChapterHref = $('a[rel="next"]').attr('href') || '';
+  const prevChapter = extractChapterSlug(prevChapterHref) || null;
+  const nextChapter = extractChapterSlug(nextChapterHref) || null;
 
   return {
     url,

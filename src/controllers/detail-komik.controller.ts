@@ -18,6 +18,6 @@ export const getKomikChapterBySlug = async (c: Context) => {
     const data = await scrapeKomikChapterBySlug(slug,chapter)
     return c.json(successResponse(data))
   } catch (err: any) {
-    return c.json(errorResponse(err.message), 500)
+    return c.json(errorResponse(err.message), )
   }
 }
