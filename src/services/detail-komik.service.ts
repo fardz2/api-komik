@@ -67,7 +67,7 @@ export const scrapeKomikBySlug = async (slug: string): Promise<KomikDetail> => {
 }
 
 export const scrapeKomikChapterBySlug = async (slug: string, chapter: string) : Promise<KomikChapterDetail>=> {
-  const url = `${process.env.KOMIKCAST_URL}/chapter/${slug}-${chapter}/`
+  const url = `${process.env.KOMIKCAST_URL}/chapter/${chapter}/`
   const html = await fetchHtml(url)
   const $ = load(html)
 
@@ -94,7 +94,6 @@ export const scrapeKomikChapterBySlug = async (slug: string, chapter: string) : 
   const nextChapter = extractChapterSlug(nextChapterHref) || null;
 
   return {
-    url,
     slug,
     chapter,
     images,

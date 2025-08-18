@@ -26,7 +26,6 @@ export interface ChapterListItem {
 }
 
 export interface KomikChapterDetail {
-  url: string
   slug: string
   chapter: string
   images: string[]

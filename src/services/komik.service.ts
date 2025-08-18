@@ -79,3 +79,13 @@ export const scrapeKomikByTipe = async (tipe: string, page: number): Promise<Daf
     pagination: parsePagination($, page)
   };
 }
+
+export const scrapeKomikByGenre = async (genre: string, page: number): Promise<DaftarKomikResult> => {
+  const baseUrl = process.env.KOMIKCAST_URL?.replace(/\/+$/, '') || '';
+  const html = await fetchHtml(`${baseUrl}/genres/${genre}/page/${page}/`);
+  const $ = load(html);
+  return {
+    comics: parseKomikList($),
+    pagination: parsePagination($, page)
+  };
+};

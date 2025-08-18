@@ -7,8 +7,5 @@ export const extractSlug = (url: string): string => {
 export const extractChapterSlug = (url: string): string => {
   if (!url.includes('/chapter/')) return url
   const slug = url.split('/chapter/')[1] || ''
-  const chapterIndex = slug.indexOf('chapter-')
-  const extracted = chapterIndex !== -1 ? slug.substring(chapterIndex) : slug
-  // Hilangkan trailing slash jika ada
-  return extracted.endsWith('/') ? extracted.slice(0, -1) : extracted
+  return slug.endsWith('/') ? slug.slice(0, -1) : slug
 }

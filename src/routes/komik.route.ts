@@ -4,6 +4,7 @@ import { Hono } from 'hono'
 import { 
   getDaftarKomik, 
   getHotKomik, 
+  getKomikByGenre, 
   getKomikByTipe, 
   getKomikSearch, 
   getKomikTerbaru 
@@ -27,5 +28,6 @@ komik.get('/detail/:slug', getKomikBySlug)
 
 // Berdasarkan tipe
 komik.get('/tipe/:tipe', getKomikByTipe)
+komik.get('/genre/:genre', getKomikByGenre)
 
 export default komik

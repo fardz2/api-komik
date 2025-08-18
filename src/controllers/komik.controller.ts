@@ -1,5 +1,5 @@
 import type { Context } from 'hono'
-import { scrapeDaftarKomik, scrapeHotKomik, scrapeKomikByTipe, scrapeKomikSearch, scrapeKomikTerbaru } from '../services/komik.service.js'
+import { scrapeDaftarKomik, scrapeHotKomik, scrapeKomikByGenre, scrapeKomikByTipe, scrapeKomikSearch, scrapeKomikTerbaru } from '../services/komik.service.js'
 import { successResponse, errorResponse } from '../utils/response.js'
 
 export const getHotKomik = async (c: Context) => {
@@ -71,4 +71,15 @@ export const getKomikByTipe = async (c: Context) => {
   }
 };
 
-
+export const getKomikByGenre = async (c: Context) => {
+  try {
+    const genre = c.req.param('genre');
+    const page = Number(c.req.query('page')) || 1;
+    const data = await scrapeKomikByGenre(genre, page);
+    return c.json(successResponse(data));
+  } catch (err: any) {
+    const statusCode = err?.status ?? 500;
+    console.error(err?.status);
+    return c.json(errorResponse(err?.message || 'Terjadi kesalahan'), statusCode);
+  }
+};
