@@ -13,7 +13,7 @@ export const scrapeHotKomik = async (): Promise<KomikItem[]> => {
   $('div.bixbox.hothome .swiper-slide').each((_, el) => {
     const anchor = $(el).find('a')
     const fullUrl = anchor.attr('href') || ''
-
+    console.log('Full URL:', fullUrl)
     results.push({
       title: decodeHtml($(el).find('.title').text().trim()),
       slug: extractSlug(fullUrl),
