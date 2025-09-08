@@ -7,11 +7,11 @@ export interface KomikItem {
   rating: string
 }
 
+
 export interface PaginationInfo {
-  currentPage: number
-  totalPages: number
-  hasNext: boolean
-  hasPrev: boolean
+  currentPage: number;
+  hasNext: boolean;
+  hasPrev: boolean;
 }
 
 export interface DaftarKomikResult {

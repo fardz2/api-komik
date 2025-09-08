@@ -1,106 +1,154 @@
-import { load } from "cheerio"
-import type { ChapterItem, ChapterListItem, KomikChapterDetail, KomikDetail } from "../types/detail-komik.types.js"
-import { fetchHtml } from "../utils/fetchHtml.js"
-import { extractChapterSlug } from "../utils/extractslug.js"
+import { load } from "cheerio";
+import type { ChapterItem, ChapterListItem, KomikChapterDetail, KomikDetail } from "../types/detail-komik.types.js";
+import { fetchHtml } from "../utils/fetchHtml.js";
+import { extractChapterSlug } from "../utils/extractslug.js";
+// import { scrapeKomikBySlug } from "./scrapeKomikBySlug.js"; // Import the function
 
-export const scrapeKomikBySlug = async (slug: string): Promise<KomikDetail> => {
-  const url = `${process.env.KOMIKCAST_URL}/komik/${slug}`
-  const html = await fetchHtml(url)
-  const $ = load(html)
+export const scrapeKomikChapterBySlug = async (slug: string, chapter: string): Promise<KomikChapterDetail> => {
+  const url = `${process.env.KOMIKCAST_URL}/${chapter}/`;
+  const html = await fetchHtml(url);
+  const $ = load(html);
 
-  // Title & Native title
-  const title = $('.komik_info-content-body-title').first().text().trim()
-  const nativeTitle = $('.komik_info-content-native').text().trim()
-
-  // Image
-  const image = $('.komik_info-cover-image img').attr('src') || ''
-
-  // Genres (array)
-  const genres: string[] = []
-  $('.komik_info-content-genre a.genre-item').each((_, el) => {
-    genres.push($(el).text().trim())
-  })
-
-  // Metadata (released, author, status, type, total chapter, updatedOn)
-  const released = $('.komik_info-content-info-release').text().replace('Released:', '').trim()
-  const author = $('.komik_info-content-info').filter((_, el) => $(el).text().includes('Author:')).text().replace('Author:', '').trim()
-  const status = $('.komik_info-content-info').filter((_, el) => $(el).text().includes('Status:')).text().replace('Status:', '').trim()
-  const type = $('.komik_info-content-info-type a').text().trim()
-  const totalChapter = $('.komik_info-content-info').filter((_, el) => $(el).text().includes('Total Chapter:')).text().replace('Total Chapter:', '').trim()
-  const updatedOn = $('.komik_info-content-update time').attr('datetime') || ''
-
-  // Rating
-  const rating = $('.data-rating').attr('data-ratingkomik') || ''
-
-  // Sinopsis (text inside .komik_info-description-sinopsis)
-  const sinopsis = $('.komik_info-description-sinopsis').text().trim()
-
-  // Chapters list
-  const chapters: ChapterItem[] = []
-  $('#chapter-wrapper li.komik_info-chapters-item').each((_, el) => {
-    const chapterTitle = $(el).find('a.chapter-link-item').text().trim()
-    const chapterUrl = $(el).find('a.chapter-link-item').attr('href') || ''
-    const updatedAt = $(el).find('.chapter-link-time').text().trim()
-    chapters.push({
-        title: chapterTitle,
-        url: extractChapterSlug(chapterUrl),
-        updatedAt,
-    })
-  })
-
-  return {
-    title,
-    nativeTitle,
-    slug,
-    image,
-    genres,
-    released,
-    author,
-    status,
-    type,
-    totalChapter,
-    updatedOn,
-    rating,
-    sinopsis,
-    chapters,
+  let chaptersList: ChapterListItem[] = [];
+  try {
+    const komikDetail = await scrapeKomikBySlug(slug);
+    chaptersList = komikDetail.chapters.map((ch: ChapterItem) => ({
+      title: ch.title,
+      url: ch.url,
+    }));
+  } catch (e) {
+    console.error(`Error fetching chapter list from scrapeKomikBySlug for manga slug ${slug}:`, e);
   }
-}
 
-export const scrapeKomikChapterBySlug = async (slug: string, chapter: string) : Promise<KomikChapterDetail>=> {
-  const url = `${process.env.KOMIKCAST_URL}/chapter/${chapter}/`
-  const html = await fetchHtml(url)
-  const $ = load(html)
+  // Extract images from script ts_reader.run
+  const images: string[] = [];
+  const scriptContent = $('script:contains("ts_reader.run")').html();
+  if (scriptContent) {
+    const jsonMatch = scriptContent.match(/ts_reader\.run\(({.*?})\);/s);
+    if (jsonMatch) {
+      try {
+        const config = JSON.parse(jsonMatch[1]);
+        if (config.sources && config.sources[0].images) {
+          images.push(...config.sources[0].images);
+        }
+      } catch (e) {
+        console.error('Error parsing ts_reader JSON:', e);
+      }
+    }
+  }
 
-  // Ambil semua gambar halaman komik
-  const images: string[] = []
-  $('.main-reading-area img').each((_, el) => {
-    const imgUrl = $(el).attr('src')
-    if (imgUrl) images.push(imgUrl)
-  })
+  // Extract prev and next chapter from script ts_reader.run
+  let prevChapter: string | null = null;
+  let nextChapter: string | null = null;
+  if (scriptContent) {
+    const jsonMatch = scriptContent.match(/ts_reader\.run\(({.*?})\);/s);
+    if (jsonMatch) {
+      try {
+        const config = JSON.parse(jsonMatch[1]);
+        prevChapter = extractChapterSlug(config.prevUrl || '') || null;
+        nextChapter = extractChapterSlug(config.nextUrl || '') || null;
+      } catch (e) {
+        console.error('Error parsing ts_reader JSON for prev/next:', e);
+      }
+    }
+  }
 
-  // Ambil daftar chapter dari select option
-  const chaptersList: ChapterListItem[] = []
-  $('#slch option').each((_, el) => {
-    const option = $(el)
-    const chapterTitle = option.text().trim()
-    const chapterUrl = option.attr('value') || ''
-    chaptersList.push({ title: chapterTitle, url: extractChapterSlug(chapterUrl) })
-  })
+  // Fallback to HTML elements if prev/next not found in script
+  if (!prevChapter) {
+    const prevChapterHref = $('.nextprev a.ch-prev-btn').attr('href') || '';
+    prevChapter = extractChapterSlug(prevChapterHref) || null;
+  }
+  if (!nextChapter) {
+    const nextChapterHref = $('.nextprev a.ch-next-btn').attr('href') || '';
+    nextChapter = extractChapterSlug(nextChapterHref) || null;
+  }
 
-  // Ambil link previous dan next chapter
-  const prevChapterHref = $('a[rel="prev"]').attr('href') || '';
-  const nextChapterHref = $('a[rel="next"]').attr('href') || '';
-  const prevChapter = extractChapterSlug(prevChapterHref) || null;
-  const nextChapter = extractChapterSlug(nextChapterHref) || null;
+  // Extract chapter title or number from the page, fallback to slug
+  const chapterTitle = $('h1.entry-title').text().trim() || chapter;
 
   return {
-    slug,
-    chapter,
+    slug: chapter,
+    chapter: chapterTitle,
     images,
     chaptersList,
     prevChapter,
     nextChapter,
-  }
-}
+  };
+};
 
+// The scrapeKomikBySlug function remains unchanged
+export const scrapeKomikBySlug = async (slug: string): Promise<KomikDetail> => {
+  const url = `${process.env.KOMIKCAST_URL}/manga/${slug}`;
+  const html = await fetchHtml(url);
+  const $ = load(html);
 
+  const title = $('h1.entry-title').text().trim();
+  const image = $('.thumb img').attr('src') || '';
+  const rating = $('.rating .num').text().trim();
+  const sinopsis = $('.entry-content[itemprop="description"]').text().trim();
+  const updatedOn = $('time[itemprop="dateModified"]').attr('datetime') || '';
+  const totalChapter = $('.epcur.epcurlast').text().trim();
+
+  const genres: string[] = $('.seriestugenre a')
+    .toArray()
+    .map((el) => $(el).text().trim());
+
+  let nativeTitle = '';
+  let status = '';
+  let type = '';
+  let released = '';
+  let author = '';
+
+  $('.infotable tr').each((_, el) => {
+    const key = $(el).find('td').first().text().trim().toLowerCase();
+    const value = $(el).find('td').last().text().trim();
+    switch (key) {
+      case 'alternative':
+        nativeTitle = value;
+        break;
+      case 'status':
+        status = value;
+        break;
+      case 'type':
+        type = value;
+        break;
+      case 'released':
+        released = value;
+        break;
+      case 'author':
+        author = value;
+        break;
+    }
+  });
+
+  const chapters: ChapterItem[] = $('#chapterlist li')
+    .toArray()
+    .map((el) => {
+      const anchor = $(el).find('a');
+      const chapterTitle = anchor.find('.chapternum').text().trim();
+      const chapterUrl = anchor.attr('href') || '';
+      const updatedAt = anchor.find('.chapterdate').text().trim();
+      return {
+        title: chapterTitle,
+        url: extractChapterSlug(chapterUrl) || '',
+        updatedAt,
+      };
+    });
+
+  return {
+    author,
+    chapters,
+    genres,
+    image,
+    nativeTitle,
+    rating,
+    released,
+    sinopsis,
+    slug,
+    status,
+    title,
+    totalChapter,
+    type,
+    updatedOn,
+  };
+};

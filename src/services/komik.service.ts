@@ -44,13 +44,15 @@ export const scrapeDaftarKomik = async (filters: {
   orderby: string;
 }): Promise<DaftarKomikResult> => {
   const query = new URLSearchParams();
+  query.append('page', filters.page.toString());
   filters.genre.forEach((g, i) => query.append(`genre[${i}]`, g));
   if (filters.status) query.append('status', filters.status);
   if (filters.type) query.append('type', filters.type);
   if (filters.orderby) query.append('orderby', filters.orderby);
-
+  
   const baseUrl = process.env.KOMIKCAST_URL?.replace(/\/+$/, '') || '';
-  const html = await fetchHtml(`${baseUrl}/daftar-komik/page/${filters.page}/?${query.toString()}`);
+  const html = await fetchHtml(`${baseUrl}/manga/?${query.toString()}`);
+
   const $ = load(html);
 
   return {

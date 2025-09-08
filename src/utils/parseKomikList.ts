@@ -5,45 +5,42 @@ import { decodeHtml } from './fetchHtml.js';
 import type { CheerioAPI } from 'cheerio';
 
 export const parseKomikList = ($: CheerioAPI): KomikItem[] => {
-  const results: KomikItem[] = [];
-  $('.list-update_item').each((_: any, el: any) => {
+ const results: KomikItem[] = [];
+
+ $('.listupd .bs').each((_: any, el: any) => {
     const anchor = $(el).find('a');
     const img = $(el).find('img');
     const fullUrl = anchor.attr('href') || '';
 
-    results.push({
-      title: decodeHtml($(el).find('.title').text().trim()),
+    const typeSpan = $(el).find('span.type');
+    const typeClasses = typeSpan.attr('class')?.split(' ') || [];
+    const comicType = typeClasses.find(cls => cls !== 'type') || '';
+
+  results.push({
+  
+      title: decodeHtml(anchor.attr('title') || ''),
       slug: extractSlug(fullUrl),
       image: img.attr('src') || '',
-      type: $(el).find('.type').text().trim(),
-      chapter: $(el).find('.chapter').text().trim(),
+      type: comicType, 
+      chapter: $(el).find('.epxs').text().trim(),
+
       rating: $(el).find('.numscore').text().trim()
     });
   });
   return results;
 };
 
-export const parsePagination = ($: CheerioAPI, fallbackPage: number) : PaginationInfo => {
-  let currentPage = fallbackPage;
+export const parsePagination = ($: CheerioAPI, fallbackPage: number): PaginationInfo => {
+// Halaman saat ini adalah halaman yang diminta.
+const currentPage = fallbackPage;
 
-  const currentText = $('.pagination .current').text().trim();
-  if (currentText) currentPage = parseInt(currentText) || fallbackPage;
+// Cek keberadaan tombol "Next" (class 'r') dan "Prev" (class 'l').
+const hasNext = $('.hpage .r').length > 0;
+const hasPrev = $('.hpage .l').length > 0;
 
-  if (!currentText) {
-    const ariaCurrent = $('.pagination .page-numbers[aria-current="page"]').text().trim();
-    if (ariaCurrent) currentPage = parseInt(ariaCurrent) || fallbackPage;
-  }
-
-  let totalPages = currentPage;
-  $('.pagination .page-numbers').each((_: any, el: any) => {
-    const num = parseInt($(el).text().trim());
-    if (!isNaN(num) && num > totalPages) totalPages = num;
-  });
-
-  return {
-    currentPage,
-    totalPages,
-    hasNext: $('.pagination .next').length > 0,
-    hasPrev: $('.pagination .prev').length > 0
-  };
+return {
+  currentPage,
+  hasNext,
+  hasPrev,
+};
 };
